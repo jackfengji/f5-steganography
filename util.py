@@ -26,7 +26,7 @@ class EmbedData(object):
 
     def read(self):
         self.now += 1
-        if self.now >= self.len:
+        if self.now > self.len:
             return 0
         return ord(self._data[self.now - 1])
 
