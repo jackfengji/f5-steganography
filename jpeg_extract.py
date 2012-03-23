@@ -43,6 +43,7 @@ class JpegExtract(object):
 
             extracted_file_length |= extracted_bit << available_extracted_bits
             available_extracted_bits += 1
+        i += 1
 
         extracted_file_length ^= f5random.get_next_byte()
         extracted_file_length ^= f5random.get_next_byte() << 8
@@ -56,7 +57,7 @@ class JpegExtract(object):
 
         available_extracted_bits = 0
         if n > 0:
-            start_of_n = 1
+            start_of_n = i
             vhash = 0
             print '(1, %d, %d) code used' % (n, k)
 
@@ -64,7 +65,7 @@ class JpegExtract(object):
                 while True:
                     vhash = 0
                     code = 1
-                    i = 0
+                    i = -1
                     while code <= n:
                         i += 1
                         if start_of_n + i >= len(coeff):
@@ -82,14 +83,15 @@ class JpegExtract(object):
                         if extracted_bit == 1:
                             vhash ^= code
                         code += 1
+                    i += 1
 
-                    start_of_n = i
+                    start_of_n += i
                     for i in range(k):
                         extracted_byte |= (vhash >> i & 1) << available_extracted_bits
                         available_extracted_bits += 1
                         if available_extracted_bits == 8:
                             extracted_byte ^= f5random.get_next_byte()
-                            out.write(extracted_byte)
+                            out.write(chr(extracted_byte & 0xff))
 
                             extracted_byte = 0
                             available_extracted_bits = 0
@@ -119,7 +121,7 @@ class JpegExtract(object):
 
                 if available_extracted_bits == 8:
                     extracted_byte ^= f5random.get_next_byte()
-                    out.write(extracted_byte)
+                    out.write(chr(extracted_byte & 0xff))
 
                     extracted_byte = 0
                     available_extracted_bits = 0
