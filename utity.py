@@ -50,3 +50,5 @@ if __name__ == '__main__':
 
             image.close()
             output.close()
+    else:
+        print 'you didn\'t give a image or the image is not there'

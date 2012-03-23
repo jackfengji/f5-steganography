@@ -1,5 +1,5 @@
 from huffman_decode import HuffmanDecode
-from util import JavaF5Random as F5Random
+from util import PythonF5Random as F5Random
 from util import BreakException
 from util import Permutation
 

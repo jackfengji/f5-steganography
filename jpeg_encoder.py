@@ -1,7 +1,7 @@
 import Image
 import binascii
 import math
-from util import JavaF5Random as F5Random
+from util import PythonF5Random as F5Random
 from util import Permutation, BreakException, EmbedData
 from util import jpeg_natural_order
 
@@ -156,7 +156,7 @@ class JpegEncoder(object):
         if comment:
             length = len(comment)
             COM = [0xff, 0xfe, length >> 8 & 0xff, length & 0xff]
-            COM.extend(comment.encode('utf-8'))
+            COM.extend(comment)
             self.write_array(COM)
 
         DQT = [0] * 134
