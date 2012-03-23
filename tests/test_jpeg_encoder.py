@@ -1,24 +1,29 @@
 import unittest
-import Image
-import sys, os
-import json
-sys.path.insert(0, os.path.abspath('.'))
-from jpeg_encoder import JpegInfo, JpegEncoder
-from huffman import Huffman
-from subprocess import check_output
-import jpype
-import time
-import StringIO
+import sys
+import os
 import struct
+import StringIO
+
+import Image
+import jpype
+
+tests_dir = os.path.dirname(__file__)
+
+sys.path.insert(0, os.path.join(tests_dir, '..'))
+import jpeg_encoder
+from jpeg_encoder import JpegInfo, JpegEncoder
+from util import JavaF5Random
+from huffman import Huffman
 
 class JpegInfoTest(unittest.TestCase):
     def test_init(self):
-        image = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage('/home/jackfengji/douban/f5/logo.jpg')
+        image_path = os.path.join(tests_dir, 'origin.jpg')
+        image = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage(image_path)
         b = jpype.JClass('james.JpegInfo')(image, '')
         b = jpype.JClass('james.JpegInfo')(image, '')
         bc = b.Components
 
-        image = Image.open('logo.jpg')
+        image = Image.open(image_path)
         a = JpegInfo(image, '')
         ac = a.components
 
@@ -57,7 +62,7 @@ class HuffmanTest(unittest.TestCase):
 
 class JpegEncoderTest(unittest.TestCase):
     def test_compress_no_embedded_data(self):
-        image_path = '/home/jackfengji/douban/f5/logo.jpg'
+        image_path = os.path.join(tests_dir, 'origin.jpg')
 
         jaoutput = jpype.JClass('java.io.ByteArrayOutputStream')()
         jaimage = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage(image_path)
@@ -65,8 +70,6 @@ class JpegEncoderTest(unittest.TestCase):
         jaencoder.Compress()
         jaarray = jaoutput.toByteArray()
 
-        from pydev import pydevd
-        #pydevd.settrace('10.0.1.98', port=12345, stdoutToServer=True, stderrToServer=True)
         pyoutput = StringIO.StringIO()
         pyimage = Image.open(image_path)
         pyencoder = JpegEncoder(pyimage, 80, pyoutput, '')
@@ -81,7 +84,7 @@ class JpegEncoderTest(unittest.TestCase):
             self.assertEqual(aa, bb)
 
     def test_compress_with_embedded_data(self):
-        image_path = '/home/jackfengji/douban/f5/logo.jpg'
+        image_path = os.path.join(tests_dir, 'origin.jpg')
 
         jaoutput = jpype.JClass('java.io.ByteArrayOutputStream')()
         jaimage = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage(image_path)
@@ -90,8 +93,7 @@ class JpegEncoderTest(unittest.TestCase):
             jpype.java.lang.String('test embed\n').getBytes()), 'abc123')
         jaarray = jaoutput.toByteArray()
 
-        from pydev import pydevd
-#        pydevd.settrace('10.0.1.98', port=12345, stdoutToServer=True, stderrToServer=True)
+        jpeg_encoder.F5Random = JavaF5Random
         pyoutput = StringIO.StringIO()
         pyimage = Image.open(image_path)
         pyencoder = JpegEncoder(pyimage, 80, pyoutput, '')
@@ -107,7 +109,8 @@ class JpegEncoderTest(unittest.TestCase):
         
 
 if __name__ == '__main__':
-    jpype.startJVM(jpype.getDefaultJVMPath(), '-Xdebug -Xrunjdwp:transport=dt_shmem,server=n,address=javadebug,onthrow=<FQ exception class name>,suspend=y,onuncaught=<y/n>')
+    classpath = '-Djava.class.path=%s' % os.path.join(os.path.dirname(__file__), 'f5.jar')
+    jpype.startJVM(jpype.getDefaultJVMPath(), classpath)
     unittest.main()
     jpype.shutdownJVM()
 

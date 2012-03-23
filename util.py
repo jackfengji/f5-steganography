@@ -68,7 +68,8 @@ class PythonF5Random(F5Random):
 class JavaF5Random(F5Random):
     def __init__(self, password):
         if not jpype.isJVMStarted():
-            jpype.startJVM(jpype.getDefaultJVMPath())
+            classpath = os.path.join(os.path.dirname(__file__), 'tests/f5.jar')
+            jpype.startJVM(jpype.getDefaultJVMPath(), '-Djava.path.class=%s' % classpath)
 
         self.random = jpype.JClass('sun.security.provider.SecureRandom')()
         self.random.engineSetSeed(jpype.java.lang.String(password).getBytes())
