@@ -60,42 +60,45 @@ class JpegExtract(object):
             vhash = 0
             print '(1, %d, %d) code used' % (n, k)
 
-            while True:
-                vhash = 0
-                code = 1
-                i = 0
-                while code <= n:
-                    i += 1
-                    if start_of_n + i >= len(coeff):
-                        raise BreakException()
-                    shuffled_index = permutation.get_shuffled(start_of_n + i)
-                    if shuffled_index % 64 == 0:
-                        continue
-                    shuffled_index = shuffled_index - shuffled_index % 64 + cls.de_zig_zag[shuffled_index % 64]
-                    if coeff[shuffled_index] == 0:
-                        continue
-                    if coeff[shuffled_index] > 0:
-                        extracted_bit = coeff[shuffled_index] & 1
-                    else:
-                        extracted_bit = 1 - (coeff[shuffled_index] & 1)
-                    if extracted_bit == 1:
-                        vhash ^= code
-                    code += 1
-
-                start_of_n = i
-                for i in range(k):
-                    extracted_byte |= (vhash >> i & 1) << available_extracted_bits
-                    available_extracted_bits += 1
-                    if available_extracted_bits == 8:
-                        extracted_byte ^= f5random.get_next_byte()
-                        out.write(extracted_byte)
-
-                        extracted_byte = 0
-                        available_extracted_bits = 0
-                        n_bytes_extracted += 1
-
-                        if n_bytes_extracted == extracted_file_length:
+            try:
+                while True:
+                    vhash = 0
+                    code = 1
+                    i = 0
+                    while code <= n:
+                        i += 1
+                        if start_of_n + i >= len(coeff):
                             raise BreakException()
+                        shuffled_index = permutation.get_shuffled(start_of_n + i)
+                        if shuffled_index % 64 == 0:
+                            continue
+                        shuffled_index = shuffled_index - shuffled_index % 64 + cls.de_zig_zag[shuffled_index % 64]
+                        if coeff[shuffled_index] == 0:
+                            continue
+                        if coeff[shuffled_index] > 0:
+                            extracted_bit = coeff[shuffled_index] & 1
+                        else:
+                            extracted_bit = 1 - (coeff[shuffled_index] & 1)
+                        if extracted_bit == 1:
+                            vhash ^= code
+                        code += 1
+
+                    start_of_n = i
+                    for i in range(k):
+                        extracted_byte |= (vhash >> i & 1) << available_extracted_bits
+                        available_extracted_bits += 1
+                        if available_extracted_bits == 8:
+                            extracted_byte ^= f5random.get_next_byte()
+                            out.write(extracted_byte)
+
+                            extracted_byte = 0
+                            available_extracted_bits = 0
+                            n_bytes_extracted += 1
+
+                            if n_bytes_extracted == extracted_file_length:
+                                raise BreakException()
+            except BreakException:
+                pass
         else:
             print 'default code used'
             i -= 1

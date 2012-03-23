@@ -13,7 +13,7 @@ def create_array(default_value=None, *args):
 
 class BreakException(Exception):
     def __init__(self):
-        super(self, BreakException).__init__('break to outside loop')
+        super(BreakException, self).__init__('break to outside loop')
 
 class EmbedData(object):
     def __init__(self, data):

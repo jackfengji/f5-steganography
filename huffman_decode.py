@@ -184,7 +184,7 @@ class HuffmanDecode(object):
 
     def _internal_decode(self):
         i, cd = 1, self.get_next_bit()
-        while cd <= self.maxcode[self.hftbl][i]:
+        while cd > self.maxcode[self.hftbl][i]:
             cd = (cd << 1) + self.get_next_bit()
             i += 1
 
@@ -279,7 +279,7 @@ class HuffmanDecode(object):
             if self.available() <= 2:
                 if self.available() == 2:
                     self.get_byte()
-                    if self.get_byte() != EOI:
+                    if self.get_byte() != self.EOI:
                         print 'file does not end with EOI'
                 else:
                     if self.available() == 1:

@@ -20,7 +20,7 @@ class JpegExtractTest(unittest.TestCase):
         jaarray = jaoutput.toByteArray()
 
         from pydev import pydevd
-        pydevd.settrace('10.0.1.98', port=12345, stdoutToServer=True, stderrToServer=True)
+        #pydevd.settrace('192.168.22.1', port=12345, stdoutToServer=True, stderrToServer=True)
         pyoutput = StringIO.StringIO()
         pyinput = open(image_path, 'rb')
         JpegExtract.extract(pyinput.read(), pyoutput, password)
