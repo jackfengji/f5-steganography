@@ -8,7 +8,7 @@ import StringIO
 import struct
 
 class JpegExtractTest(unittest.TestCase):
-    def test_extract_no_compress_data(self):
+    def test_extract_with_compressed_data(self):
         image_path = '/home/jackfengji/douban/f5/logo-python.jpg'
         password = 'abc123'
 
@@ -28,8 +28,6 @@ class JpegExtractTest(unittest.TestCase):
         pyinput.close()
         pyoutput.close()
 
-        print pyarray
-        print jaarray
         self.assertEqual(len(jaarray), len(pyarray))
         for i in range(len(jaarray)):
             aa = int(jaarray[i])
