@@ -1,4 +1,3 @@
-import jpype
 import random
 
 JPEG_NATURAL_ORDER = [0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7,
@@ -67,6 +66,7 @@ class PythonF5Random(F5Random):
 
 class JavaF5Random(F5Random):
     def __init__(self, password):
+        import jpype
         if not jpype.isJVMStarted():
             classpath = os.path.join(os.path.dirname(__file__), 'tests/f5.jar')
             jpype.startJVM(jpype.getDefaultJVMPath(), '-Djava.path.class=%s' % classpath)
