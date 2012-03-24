@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import Image
 from jpeg_encoder import JpegEncoder
 import sys
