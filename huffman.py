@@ -51,8 +51,8 @@ class Huffman(object):
             0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 
             0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa
         ]
-    VAL  = [VAL_DC_LUMINANCE,   VAL_AC_LUMINANCE, 
-            VAL_DC_CHROMINANCE, VAL_AC_CHROMINANCE]
+    VAL = [VAL_DC_LUMINANCE,   VAL_AC_LUMINANCE, 
+           VAL_DC_CHROMINANCE, VAL_AC_CHROMINANCE]
 
     def __init__(self, width, height):
         self.buffer_put_bits = 0
@@ -63,53 +63,32 @@ class Huffman(object):
         self.init_huf()
 
     def init_huf(self):
-        self.dc_matrix0 = create_array(0, 12, 2)
-        self.dc_matrix1 = create_array(0, 12, 2)
-        self.ac_matrix0 = create_array(0, 255, 2)
-        self.ac_matrix1 = create_array(0, 255, 2)
-
-        huffsize = [0] * 257
-        huffcode = [0] * 257
+        self.dc_matrix = create_array(0, 2, 12, 2)
+        self.ac_matrix = create_array(0, 2, 255, 2)
 
         def cal(bits, val, matrix):
             p = 0
-            for l in range(1, 17):
-                for i in range(1, bits[l] + 1):
-                    huffsize[p] = l
-                    p += 1
-            huffsize[p] = 0
-            lastp = p
-
             code = 0
-            si = huffsize[0]
-            p = 0
-            while huffsize[p]:
-                while huffsize[p] == si:
-                    huffcode[p] = code; p += 1
+            for l in range(1, len(bits)):
+                for i in range(bits[l]):
+                    matrix[val[p]] = (code, l)
+                    p += 1
                     code += 1
                 code <<= 1
-                si += 1
-            for p in range(0, lastp):
-                matrix[val[p]][0] = huffcode[p]
-                matrix[val[p]][1] = huffsize[p]
-
-        cal(self.BITS_DC_LUMINANCE,   self.VAL_DC_LUMINANCE, self.dc_matrix0)
-        cal(self.BITS_AC_LUMINANCE,   self.VAL_AC_LUMINANCE, self.ac_matrix0)
-        cal(self.BITS_DC_CHROMINANCE, self.VAL_DC_CHROMINANCE, self.dc_matrix1)
-        cal(self.BITS_AC_CHROMINANCE, self.VAL_AC_CHROMINANCE, self.ac_matrix1)
-
-        self.dc_matrix = [self.dc_matrix0, self.dc_matrix1]
-        self.ac_matrix = [self.ac_matrix0, self.ac_matrix1]
+        
+        cal(self.BITS_DC_LUMINANCE,   self.VAL_DC_LUMINANCE,   self.dc_matrix[0])
+        cal(self.BITS_AC_LUMINANCE,   self.VAL_AC_LUMINANCE,   self.ac_matrix[0])
+        cal(self.BITS_DC_CHROMINANCE, self.VAL_DC_CHROMINANCE, self.dc_matrix[1])
+        cal(self.BITS_AC_CHROMINANCE, self.VAL_AC_CHROMINANCE, self.ac_matrix[1])
 
     def write_byte(self, out, byte):
-        out.write(bytearray([byte]))
+        out.write(chr(byte))
 
     def buffer_it(self, out, code, size):
         put_buffer = code
-        put_bits = self.buffer_put_bits
+        put_bits = self.buffer_put_bits + size
 
         put_buffer &= (1 << size) - 1
-        put_bits += size
         put_buffer <<= 24 - put_bits
         put_buffer |= self.buffer_put_buffer
 
@@ -127,17 +106,13 @@ class Huffman(object):
     def flush_buffer(self, out):
         put_buffer = self.buffer_put_buffer
         put_bits = self.buffer_put_bits
-        while put_bits >= 8:
+        while put_bits > 0:
             c = put_buffer >> 16 & 0xff
             self.write_byte(out, c)
             if c == 0xff:
                 self.write_byte(out, 0)
             put_buffer <<= 8
             put_bits -= 8
-
-        if put_bits > 0:
-            c = put_buffer >> 16 & 0xff
-            self.write_byte(out, c)
 
     def huffman_block_encoder(self, out, zigzag, prec, dc_code, ac_code):
         self.num_of_dc_tables = 2
