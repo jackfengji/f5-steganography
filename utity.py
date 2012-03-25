@@ -24,6 +24,9 @@ if __name__ == '__main__':
         if options.type == 'e' and options.data:
             image = Image.open(options.image)
             data = options.data
+            if not data:
+                print 'there\'s no data to embed'
+                sys.exit(0)
 
             if not options.output:
                 print 'you didn\'t specify the output jpeg file, if will be default output.jpg'
