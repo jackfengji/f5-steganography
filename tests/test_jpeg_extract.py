@@ -13,8 +13,8 @@ from util import JavaF5Random
 from jpeg_extract import JpegExtract
 
 class JpegExtractTest(unittest.TestCase):
-    def test_extract_with_compressed_data(self):
-        image_path = os.path.join(tests_dir, 'encoded.jpg')
+
+    def _extract_image(self, image_path):
         password = 'abc123'
 
         jafile = jpype.JClass('java.io.File')(image_path)
@@ -24,12 +24,10 @@ class JpegExtractTest(unittest.TestCase):
         jaextract.extract(jainput, jafile.length(), jaoutput, password)
         jaarray = jaoutput.toByteArray()
 
-        #from pydev import pydevd
-        #pydevd.settrace('192.168.22.1', port=12345, stdoutToServer=True, stderrToServer=True)
         jpeg_extract.F5Random = JavaF5Random
         pyoutput = StringIO.StringIO()
         pyinput = open(image_path, 'rb')
-        JpegExtract.extract(pyinput.read(), pyoutput, password)
+        JpegExtract(pyoutput, password).extract(pyinput.read())
         pyarray = pyoutput.getvalue()
         pyinput.close()
         pyoutput.close()
@@ -39,6 +37,12 @@ class JpegExtractTest(unittest.TestCase):
             aa = int(jaarray[i])
             bb = struct.unpack('b', pyarray[i])[0]
             self.assertEqual(aa, bb)
+
+    def test_extract_short_compressed_data(self):
+        self._extract_image(os.path.join(tests_dir, 'encoded_short.jpg'))
+
+    def test_extract_long_compressed_data(self):
+        self._extract_image(os.path.join(tests_dir, 'encoded_long.jpg'))
 
 if __name__ == '__main__':
     classpath = '-Djava.class.path=%s' % os.path.join(os.path.dirname(__file__), 'f5.jar')
