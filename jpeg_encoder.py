@@ -272,7 +272,6 @@ class JpegEncoder(object):
             for i in range(1, 8):
                 self.n = (1 << i) - 1
                 usable = (_expected * i / self.n - _expected * i / self.n % self.n) / 8
-                print '####', usable
                 if usable < byte_to_embed + 4:
                     break
 
