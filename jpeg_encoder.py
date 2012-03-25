@@ -272,6 +272,7 @@ class JpegEncoder(object):
             for i in range(1, 8):
                 self.n = (1 << i) - 1
                 usable = (_expected * i / self.n - _expected * i / self.n % self.n) / 8
+                print '####', usable
                 if usable < byte_to_embed + 4:
                     break
 
@@ -297,34 +298,36 @@ class JpegEncoder(object):
             available_bits_to_embed = 31
             _embedded += 1
 
-            if self.n > 1:
-                code_word = create_array(0, self.n)
-                is_last_byte = False
+            for i, shuffled_index in enumerate(permutation.shuffled):
+                if shuffled_index % 64 == 0 or coeff[shuffled_index] == 0:
+                    continue
+                cc = coeff[shuffled_index]
+                _examined += 1
 
-                for i, shuffled_index in enumerate(permutation.shuffled):
-                    if shuffled_index % 64 == 0:
-                        continue
-                    cc = coeff[shuffled_index]
-                    if cc == 0:
-                        continue
-                    if cc > 0 and (cc & 1) != next_bit_to_embed:
-                        coeff[shuffled_index] -= 1
-                        _changed +=1
-                    elif cc < 0 and (cc & 1) == next_bit_to_embed:
-                        coeff[shuffled_index] += 1
-                        _changed += 1
-                    
-                    if coeff[shuffled_index] != 0:
-                        if available_bits_to_embed == 0:
+                if cc > 0 and (cc & 1) != next_bit_to_embed:
+                    coeff[shuffled_index] -= 1
+                    _changed +=1
+                elif cc < 0 and (cc & 1) == next_bit_to_embed:
+                    coeff[shuffled_index] += 1
+                    _changed += 1
+
+                if coeff[shuffled_index] != 0:
+                    if available_bits_to_embed == 0:
+                        if self.n > 1 or not self.embedded_data.available():
                             break
-                        next_bit_to_embed = byte_to_embed & 1
-                        byte_to_embed >>= 1
-                        available_bits_to_embed -= 1
-                        _embedded += 1
-                    else:
-                        _thrown += 1
+                        byte_to_embed = self.embedded_data.read()
+                        byte_to_embed ^= random.get_next_byte()
+                        available_bits_to_embed = 8
+                    next_bit_to_embed = byte_to_embed & 1
+                    byte_to_embed >>= 1
+                    available_bits_to_embed -= 1
+                    _embedded += 1
+                else:
+                    _thrown += 1
 
+            if self.n > 1:
                 try:
+                    is_last_byte = False
                     filtered_index = FilteredCollection(permutation.shuffled[i+1:], lambda index: index % 64 and coeff[index])
                     while not is_last_byte:
                         k_bits_to_embed = 0
@@ -366,42 +369,13 @@ class JpegEncoder(object):
                                 code_word.extend(filtered_index.offer(1))
                             else:
                                 break
-
                 except FilteredCollection.ListNotEnough:
                     pass
-            else:
-                for i in range(coeff_count):
-                    shuffled_index = permutation.get_shuffled(i)
-                    if shuffled_index % 64 == 0:
-                        continue
-                    cc = coeff[shuffled_index]
-                    if cc == 0:
-                        continue
-                    _examined += 1
 
-                    if cc > 0 and (cc & 1) != next_bit_to_embed:
-                        coeff[shuffled_index] -= 1
-                        _changed +=1
-                    elif cc < 0 and (cc & 1) == next_bit_to_embed:
-                        coeff[shuffled_index] += 1
-                        _changed += 1
-
-                    if coeff[shuffled_index] != 0:
-                        if available_bits_to_embed == 0:
-                            if not self.embedded_data.available():
-                                break
-                            byte_to_embed = self.embedded_data.read()
-                            byte_to_embed ^= random.getNextByte()
-                            available_bits_to_embed = 8
-                        next_bit_to_embed = byte_to_embed & 1
-                        byte_to_embed >>= 1
-                        available_bits_to_embed -= 1
-                        _embedded += 1
-                    else:
-                        _thrown += 1
             if _examined > 0:
                 print _examined, 'coefficients examined'
-            print _changed, 'coefficients changed (efficiency:,', _embedded / _changed, '.', _embedded * 10 / _changed % 10, 'bits per change'
+            if _changed > 0:
+                print _changed, 'coefficients changed (efficiency:,', _embedded / _changed, '.', _embedded * 10 / _changed % 10, 'bits per change'
             print _thrown, 'coefficients thrown (zeroed)'
             print _embedded, 'bits (', _embedded / 8, 'bytes) embedded'
 

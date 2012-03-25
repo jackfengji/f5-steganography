@@ -62,7 +62,7 @@ class FilteredCollection(object):
                 result.append(self.iterator[self.now])
                 self.now += 1
             else:
-                raise 
+                raise FilteredCollection.ListNotEnough(count)
         return result
 
     def reset(self):
@@ -70,7 +70,7 @@ class FilteredCollection(object):
 
     class ListNotEnough(Exception):
         def __init__(self, count):
-            super(ListNotEnough, 'sorry list is not enough to provide %d elements' % count)
+            super(FilteredCollection.ListNotEnough, self).__init__('sorry list is not enough to provide %d elements' % count)
 
 class F5Random(object):
     def get_next_byte(self):

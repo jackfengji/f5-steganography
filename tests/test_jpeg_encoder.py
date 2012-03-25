@@ -92,8 +92,11 @@ class JpegEncoderTest(unittest.TestCase):
     def test_compress_no_embedded_data(self):
         self._test_compress(None)
 
-    def test_compress_with_embedded_data(self):
-        self._test_compress('test embed\n')
+    def test_compress_with_short_embedded_data(self):
+        self._test_compress('i')
+
+    def test_compress_with_long_embedded_data(self):
+        self._test_compress('test eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeembed\n')
         
     def test_compress_with_chinese_embedded_data(self):
         self._test_compress('我的测试用例')
