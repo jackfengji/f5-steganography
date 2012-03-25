@@ -1,3 +1,4 @@
+#coding: utf-8
 import unittest
 import sys
 import os
@@ -61,43 +62,24 @@ class HuffmanTest(unittest.TestCase):
         check(pydc, jadc)
 
 class JpegEncoderTest(unittest.TestCase):
-    def test_compress_no_embedded_data(self):
+    def _test_compress(self, embed_data):
         image_path = os.path.join(tests_dir, 'origin.jpg')
 
         jaoutput = jpype.JClass('java.io.ByteArrayOutputStream')()
         jaimage = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage(image_path)
         jaencoder = jpype.JClass('james.JpegEncoder')(jaimage, 80, jaoutput, '')
-        jaencoder.Compress()
-        jaarray = jaoutput.toByteArray()
-
-        pyoutput = StringIO.StringIO()
-        pyimage = Image.open(image_path)
-        pyencoder = JpegEncoder(pyimage, 80, pyoutput, '')
-        pyencoder.compress()
-        pyarray = pyoutput.getvalue()
-        pyoutput.close()
-
-        self.assertEqual(len(jaarray), len(pyarray))
-        for i in range(len(jaarray)):
-            aa = int(jaarray[i])
-            bb = struct.unpack('b', pyarray[i])[0]
-            self.assertEqual(aa, bb)
-
-    def test_compress_with_embedded_data(self):
-        image_path = os.path.join(tests_dir, 'origin.jpg')
-
-        jaoutput = jpype.JClass('java.io.ByteArrayOutputStream')()
-        jaimage = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage(image_path)
-        jaencoder = jpype.JClass('james.JpegEncoder')(jaimage, 80, jaoutput, '')
-        jaencoder.Compress(jpype.JClass('java.io.ByteArrayInputStream')(
-            jpype.java.lang.String('test embed\n').getBytes()), 'abc123')
+        if embed_data:
+            jaencoder.Compress(jpype.JClass('java.io.ByteArrayInputStream')(
+                jpype.java.lang.String(embed_data.decode('utf-8')).getBytes()), 'abc123')
+        else:
+            jaencoder.Compress()
         jaarray = jaoutput.toByteArray()
 
         jpeg_encoder.F5Random = JavaF5Random
         pyoutput = StringIO.StringIO()
         pyimage = Image.open(image_path)
         pyencoder = JpegEncoder(pyimage, 80, pyoutput, '')
-        pyencoder.compress('test embed\n', 'abc123')
+        pyencoder.compress(embed_data, 'abc123')
         pyarray = pyoutput.getvalue()
         pyoutput.close()
 
@@ -106,7 +88,15 @@ class JpegEncoderTest(unittest.TestCase):
             aa = int(jaarray[i])
             bb = struct.unpack('b', pyarray[i])[0]
             self.assertEqual(aa, bb, '%d %d %d' % (i, aa, bb))
+
+    def test_compress_no_embedded_data(self):
+        self._test_compress(None)
+
+    def test_compress_with_embedded_data(self):
+        self._test_compress('test embed\n')
         
+    def test_compress_with_chinese_embedded_data(self):
+        self._test_compress('我的测试用例')
 
 if __name__ == '__main__':
     classpath = '-Djava.class.path=%s' % os.path.join(os.path.dirname(__file__), 'f5.jar')
