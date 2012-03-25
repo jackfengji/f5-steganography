@@ -46,6 +46,32 @@ class Permutation(object):
     def get_shuffled(self, i):
         return self.shuffled[i]
 
+class FilteredCollection(object):
+    def __init__(self, l, filter_func):
+        self.iterator = l
+        self.filter_func = filter_func
+        self.now = 0
+
+    def offer(self, count=1):
+        result = []
+        while count:
+            while self.now < len(self.iterator) and not self.filter_func(self.iterator[self.now]):
+                self.now += 1
+            if self.now < len(self.iterator):
+                count -= 1
+                result.append(self.iterator[self.now])
+                self.now += 1
+            else:
+                raise 
+        return result
+
+    def reset(self):
+        self.now = 0
+
+    class ListNotEnough(Exception):
+        def __init__(self, count):
+            super(ListNotEnough, 'sorry list is not enough to provide %d elements' % count)
+
 class F5Random(object):
     def get_next_byte(self):
         raise Exception('not implemented')

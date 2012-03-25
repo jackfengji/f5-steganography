@@ -8,6 +8,7 @@ from util import BreakException
 from util import EmbedData
 from util import JPEG_NATURAL_ORDER
 from util import create_array
+from util import FilteredCollection
 
 from huffman import Huffman
 from DCT import DCT
@@ -217,7 +218,6 @@ class JpegEncoder(object):
         min_block_width = min(self.jpeg_obj.block_width)
         min_block_height = min(self.jpeg_obj.block_height)
 
-
         print 'DCT/quantisation starts'
         print self.image_width, 'x', self.image_height
 
@@ -227,12 +227,12 @@ class JpegEncoder(object):
         print 'got %d DCT AC/DC coefficients' % coeff_count
         _changed, _embedded, _examined, _expected, _one, _large, _thrown, _zero = 0, 0, 0, 0, 0, 0, 0, 0
         shuffled_index = 0
-        for i in range(coeff_count):
+        for i, cc in enumerate(coeff):
             if i % 64 == 0:
                 continue
-            if coeff[i] == 1 or coeff[i] == -1:
+            if cc == 1 or cc == -1:
                 _one += 1
-            if coeff[i] == 0:
+            elif cc == 0:
                 _zero += 1
 
         _large = coeff_count - _zero - _one - coeff_count / 64
@@ -245,20 +245,14 @@ class JpegEncoder(object):
         print 'expected capacity with'
         for i in range(1, 8):
             n = (1 << i) - 1
-            usable = _expected * i / n - _expected * i / n % n
-            #changed = coeff_count - _zero - coeff_count / 64
-            #changed = changed * i / n - changed * i / n % n
-            #changed = n * changed / (n + 1) / i
             changed = _large - _large % (n + 1)
             changed = (changed + _one + _one / 2 - _one / (n + 1)) / (n + 1)
-            usable /= 8
+
+            usable = (_expected * i / n - _expected * i / n % n) / 8
             if usable == 0:
                 break
-            if i == 1:
-                print 'default'
-            else:
-                print '(1, %d, %d)' % (n, i)
 
+            print 'default' if i == 1 else '(1, %d, %d)' % (n, i)
             print 'code: %d bytes (efficiency: %d.%d bits per change)' % (usable, usable * 8 / changed, usable * 80 / changed % 10)
 
         if self.embedded_data is not None:
@@ -277,10 +271,7 @@ class JpegEncoder(object):
 
             for i in range(1, 8):
                 self.n = (1 << i) - 1
-                usable = _expected * i / self.n - _expected * i / self.n % self.n
-                usable /= 8
-                if usable == 0:
-                    break
+                usable = (_expected * i / self.n - _expected * i / self.n % self.n) / 8
                 if usable < byte_to_embed + 4:
                     break
 
@@ -296,34 +287,32 @@ class JpegEncoder(object):
                 print 'using (1, %d, %d) code' % (self.n, k)
 
             byte_to_embed |= k << 24
-
             byte_to_embed ^= random.get_next_byte()
             byte_to_embed ^= random.get_next_byte() << 8
             byte_to_embed ^= random.get_next_byte() << 16
             byte_to_embed ^= random.get_next_byte() << 24
+
             next_bit_to_embed = byte_to_embed & 1
             byte_to_embed >>= 1
             available_bits_to_embed = 31
             _embedded += 1
 
             if self.n > 1:
-                code_word = [0] * self.n
+                code_word = create_array(0, self.n)
                 is_last_byte = False
 
-                for i in range(coeff_count):
-                    shuffled_index = permutation.get_shuffled(i)
+                for i, shuffled_index in enumerate(permutation.shuffled):
                     if shuffled_index % 64 == 0:
                         continue
-                    if coeff[shuffled_index] == 0:
+                    cc = coeff[shuffled_index]
+                    if cc == 0:
                         continue
-                    if coeff[shuffled_index] > 0:
-                        if (coeff[shuffled_index] & 1) != next_bit_to_embed:
-                            coeff[shuffled_index] -= 1
-                            _changed +=1
-                    else:
-                        if (coeff[shuffled_index] & 1) == next_bit_to_embed:
-                            coeff[shuffled_index] += 1
-                            _changed += 1
+                    if cc > 0 and (cc & 1) != next_bit_to_embed:
+                        coeff[shuffled_index] -= 1
+                        _changed +=1
+                    elif cc < 0 and (cc & 1) == next_bit_to_embed:
+                        coeff[shuffled_index] += 1
+                        _changed += 1
                     
                     if coeff[shuffled_index] != 0:
                         if available_bits_to_embed == 0:
@@ -335,8 +324,8 @@ class JpegEncoder(object):
                     else:
                         _thrown += 1
 
-                start_of_n = i + 1
                 try:
+                    filtered_index = FilteredCollection(permutation.shuffled[i+1:], lambda index: index % 64 and coeff[index])
                     while not is_last_byte:
                         k_bits_to_embed = 0
                         for i in range(k):
@@ -353,65 +342,50 @@ class JpegEncoder(object):
                             k_bits_to_embed |= next_bit_to_embed << i
                             _embedded += 1
 
+                        code_word = filtered_index.offer(self.n)
                         while True:
-                            j = start_of_n - 1
-                            i = 0
-                            while i < self.n:
-                                j += 1
-                                if j >= coeff_count:
-                                    print 'capacity exhausted.'
-                                    raise BreakException()
-                                shuffled_index = permutation.get_shuffled(j)
-                                if not shuffled_index % 64:
-                                    continue
-                                if not coeff[shuffled_index]:
-                                    continue
-                                code_word[i] = shuffled_index
-                                i += 1
-                            end_of_n = j + 1
                             vhash = 0
-                            for i in range(self.n):
-                                if coeff[code_word[i]] > 0:
-                                    extracted_bit = coeff[code_word[i]] & 1
+                            for i, index in enumerate(code_word):
+                                if coeff[index] > 0:
+                                    extracted_bit = coeff[index] & 1
                                 else:
-                                    extracted_bit = 1 - (coeff[code_word[i]] & 1)
+                                    extracted_bit = 1 - (coeff[index] & 1)
                                 if extracted_bit == 1:
                                     vhash ^= i + 1
                             i = vhash ^ k_bits_to_embed
                             if not i:
                                 break
+
                             i -= 1
-                            if coeff[code_word[i]] > 0:
-                                coeff[code_word[i]] -= 1
-                            else:
-                                coeff[code_word[i]] += 1
+                            coeff[code_word[i]] += 1 if coeff[code_word[i]] < 0 else -1
                             _changed += 1
 
                             if not coeff[code_word[i]]:
                                 _thrown += 1
+                                code_word[i:i+1] = []
+                                code_word.extend(filtered_index.offer(1))
                             else:
                                 break
 
-                        start_of_n = end_of_n
-                except BreakException:
+                except FilteredCollection.ListNotEnough:
                     pass
             else:
                 for i in range(coeff_count):
                     shuffled_index = permutation.get_shuffled(i)
                     if shuffled_index % 64 == 0:
                         continue
-                    if coeff[shuffled_index] == 0:
+                    cc = coeff[shuffled_index]
+                    if cc == 0:
                         continue
-
                     _examined += 1
-                    if coeff[shuffled_index] > 0:
-                        if (coeff[shuffled_index] & 1) != next_bit_to_embed:
-                            coeff[shuffled_index] -= 1
-                            _changed +=1
-                    else:
-                        if (coeff[shuffled_index] & 1) == next_bit_to_embed:
-                            coeff[shuffled_index] += 1
-                            _changed -= 1
+
+                    if cc > 0 and (cc & 1) != next_bit_to_embed:
+                        coeff[shuffled_index] -= 1
+                        _changed +=1
+                    elif cc < 0 and (cc & 1) == next_bit_to_embed:
+                        coeff[shuffled_index] += 1
+                        _changed += 1
+
                     if coeff[shuffled_index] != 0:
                         if available_bits_to_embed == 0:
                             if not self.embedded_data.available():
