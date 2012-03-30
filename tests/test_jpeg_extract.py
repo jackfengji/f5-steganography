@@ -9,7 +9,7 @@ tests_dir = os.path.dirname(__file__)
 
 sys.path.insert(0, os.path.join(tests_dir, '..'))
 import jpeg_extract
-from util import JavaF5Random
+from test_util import JavaF5Random
 from jpeg_extract import JpegExtract
 
 class JpegExtractTest(unittest.TestCase):

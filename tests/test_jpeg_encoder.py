@@ -13,7 +13,7 @@ tests_dir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(tests_dir, '..'))
 import jpeg_encoder
 from jpeg_encoder import JpegInfo, JpegEncoder
-from util import JavaF5Random
+from test_util import JavaF5Random
 from huffman import Huffman
 
 class JpegInfoTest(unittest.TestCase):
