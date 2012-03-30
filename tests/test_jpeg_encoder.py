@@ -16,9 +16,10 @@ sys.path.insert(0, os.path.join(tests_dir, '..'))
 import jpeg_encoder
 from jpeg_encoder import JpegInfo, JpegEncoder
 from test_util import JavaF5Random
+from test_util import F5TestCase
 from huffman import Huffman
 
-class JpegInfoTest(unittest.TestCase):
+class JpegInfoTest(F5TestCase):
     def test_init(self):
         image_path = os.path.join(tests_dir, 'origin.jpg')
         image = jpype.JClass('java.awt.Toolkit').getDefaultToolkit().getImage(image_path)
@@ -42,7 +43,7 @@ class JpegInfoTest(unittest.TestCase):
         for i in range(len(a.block_width)):
             self.assertEqual(a.block_width[i], b.BlockWidth[i])
 
-class HuffmanTest(unittest.TestCase):
+class HuffmanTest(F5TestCase):
     def test_init(self):
         huffman = Huffman(100, 100)
         pydc = huffman.dc_matrix
@@ -63,7 +64,7 @@ class HuffmanTest(unittest.TestCase):
         check(pyac, jaac)
         check(pydc, jadc)
 
-class JpegEncoderTest(unittest.TestCase):
+class JpegEncoderTest(F5TestCase):
     def _test_compress(self, embed_data):
         image_path = os.path.join(tests_dir, 'origin.jpg')
 
@@ -111,8 +112,6 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)-15s [%(name)-9s] %(message)s', 
             level=options.quiet and logging.ERROR
                 or options.verbose and logging.DEBUG or logging.INFO)
-    classpath = '-Djava.class.path=%s' % os.path.join(os.path.dirname(__file__), 'f5.jar')
-    jpype.startJVM(jpype.getDefaultJVMPath(), classpath)
+
     unittest.main()
-    jpype.shutdownJVM()
 

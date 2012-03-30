@@ -4,15 +4,18 @@ import time
 import StringIO
 import struct
 import jpype
+import optparse
+import logging
 
 tests_dir = os.path.dirname(__file__)
 
 sys.path.insert(0, os.path.join(tests_dir, '..'))
 import jpeg_extract
 from test_util import JavaF5Random
+from test_util import F5TestCase
 from jpeg_extract import JpegExtract
 
-class JpegExtractTest(unittest.TestCase):
+class JpegExtractTest(F5TestCase):
 
     def _extract_image(self, image_path):
         password = 'abc123'
@@ -45,8 +48,12 @@ class JpegExtractTest(unittest.TestCase):
         self._extract_image(os.path.join(tests_dir, 'encoded_long.jpg'))
 
 if __name__ == '__main__':
-    classpath = '-Djava.class.path=%s' % os.path.join(os.path.dirname(__file__), 'f5.jar')
-    jpype.startJVM(jpype.getDefaultJVMPath(), classpath)
-    unittest.main()
-    jpype.shutdownJVM()
+    parser = optparse.OptionParser(usage="Usage: %prog [options] [args]")
+    parser.add_option('-q', '--quiet', action='store_true')
+    parser.add_option('-v', '--verbose', action='store_true')
+    options, args = parser.parse_args()
+    logging.basicConfig(format='%(asctime)-15s [%(name)-9s] %(message)s', 
+            level=options.quiet and logging.ERROR
+                or options.verbose and logging.DEBUG or logging.INFO)
 
+    unittest.main()
