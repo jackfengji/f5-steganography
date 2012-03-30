@@ -4,9 +4,11 @@ import sys
 import os
 import struct
 import StringIO
+import logging
 
 import Image
 import jpype
+import optparse
 
 tests_dir = os.path.dirname(__file__)
 
@@ -102,6 +104,13 @@ class JpegEncoderTest(unittest.TestCase):
         self._test_compress('我的测试用例')
 
 if __name__ == '__main__':
+    parser = optparse.OptionParser(usage="Usage: %prog [options] [args]")
+    parser.add_option('-q', '--quiet', action='store_true')
+    parser.add_option('-v', '--verbose', action='store_true')
+    options, args = parser.parse_args()
+    logging.basicConfig(format='%(asctime)-15s [%(name)-9s] %(message)s', 
+            level=options.quiet and logging.ERROR
+                or options.verbose and logging.DEBUG or logging.INFO)
     classpath = '-Djava.class.path=%s' % os.path.join(os.path.dirname(__file__), 'f5.jar')
     jpype.startJVM(jpype.getDefaultJVMPath(), classpath)
     unittest.main()

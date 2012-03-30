@@ -1,5 +1,8 @@
 from util import EmbedData
 from util import create_array
+import logging
+
+logger = logging.getLogger('huffman_decode')
 
 class HuffTable(object):
     def __init__(self, data, l):
@@ -180,7 +183,7 @@ class HuffmanDecode(object):
         elif self.nf == 3:
             return 6 * square((self.x + 15) / 16)
         else:
-            print 'nf is not 1 neither 3'
+            logger.error('nf is not 1 neither 3')
 
     def _internal_decode(self):
         i, cd = 1, self.get_next_bit()
@@ -280,11 +283,11 @@ class HuffmanDecode(object):
                 if self.available() == 2:
                     self.get_byte()
                     if self.get_byte() != self.EOI:
-                        print 'file does not end with EOI'
+                        logger.error('file does not end with EOI')
                 else:
                     if self.available() == 1:
-                        print '%X' % self.get_byte()
-                    print 'file does not end with EOI'
+                        logger.error('last byte: %X' % self.get_byte())
+                    logger.error('file does not end with EOI')
                 break
 
         return buff[:pos]

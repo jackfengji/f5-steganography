@@ -1,6 +1,7 @@
 import Image
 import math
 import operator
+import logging
 
 from util import PythonF5Random as F5Random
 from util import Permutation
@@ -12,6 +13,8 @@ from util import FilteredCollection
 
 from huffman import Huffman
 from DCT import DCT
+
+logger = logging.getLogger('jpeg_encoder')
 
 def eight_byte(first, second):
     return (first << 4) + second
@@ -134,7 +137,7 @@ class JpegEncoder(object):
 
         comment = self.jpeg_obj.get_comment()
         if comment:
-            length = len(comment)
+            length = len(comment) + 2
             COM = [0xff, 0xfe, length >> 8 & 0xff, length & 0xff]
             COM.extend(comment)
             self.write_array(COM)
@@ -218,13 +221,13 @@ class JpegEncoder(object):
         min_block_width = min(self.jpeg_obj.block_width)
         min_block_height = min(self.jpeg_obj.block_height)
 
-        print 'DCT/quantisation starts'
-        print self.image_width, 'x', self.image_height
+        logger.info('DCT/quantisation starts')
+        logger.info('%d x %d' % (self.image_width, self.image_height))
 
         coeff = self._get_coeff()
         coeff_count = len(coeff)
 
-        print 'got %d DCT AC/DC coefficients' % coeff_count
+        logger.info('got %d DCT AC/DC coefficients' % coeff_count)
         _changed, _embedded, _examined, _expected, _one, _large, _thrown, _zero = 0, 0, 0, 0, 0, 0, 0, 0
         shuffled_index = 0
         for i, cc in enumerate(coeff):
@@ -238,11 +241,11 @@ class JpegEncoder(object):
         _large = coeff_count - _zero - _one - coeff_count / 64
         _expected = _large + int(0.49 * _one)
 
-        print 'one=', _one
-        print 'large=', _large
+        logger.info('one=%d' % _one)
+        logger.info('large=%d' % _large)
 
-        print 'expected capacity: %d bits' % _expected
-        print 'expected capacity with'
+        logger.info('expected capacity: %d bits' % _expected)
+        logger.info('expected capacity with')
         for i in range(1, 8):
             n = (1 << i) - 1
             changed = _large - _large % (n + 1)
@@ -252,11 +255,10 @@ class JpegEncoder(object):
             if usable == 0:
                 break
 
-            print 'default' if i == 1 else '(1, %d, %d)' % (n, i)
-            print 'code: %d bytes (efficiency: %d.%d bits per change)' % (usable, usable * 8 / changed, usable * 80 / changed % 10)
+            logger.info('%s code: %d bytes (efficiency: %d.%d bits per change)' % ('default' if i == 1 else '(1, %d, %d)' % (n, i), usable, usable * 8 / changed, usable * 80 / changed % 10))
 
         if self.embedded_data is not None:
-            print 'permutation starts'
+            logger.info('permutation starts')
             random = F5Random(self.password)
             permutation = Permutation(coeff_count, random)
 
@@ -264,7 +266,7 @@ class JpegEncoder(object):
             byte_to_embed = len(self.embedded_data)
             available_bits_to_embed = 0
 
-            print 'Embedding of %d bits (%d+4 bytes)' % (byte_to_embed * 8 + 32, byte_to_embed)
+            logger.info('Embedding of %d bits (%d+4 bytes)' % (byte_to_embed * 8 + 32, byte_to_embed))
 
             if byte_to_embed > 0x007fffff:
                 byte_to_embed = 0x007ffff
@@ -279,12 +281,12 @@ class JpegEncoder(object):
             self.n = (1 << k) - 1
 
             if self.n == 0:
-                print 'using default code, file will not fit'
+                logger.info('using default code, file will not fit')
                 self.n = 1
             elif self.n == 1:
-                print 'using default code'
+                logger.info('using default code')
             else:
-                print 'using (1, %d, %d) code' % (self.n, k)
+                logger.info('using (1, %d, %d) code' % (self.n, k))
 
             byte_to_embed |= k << 24
             byte_to_embed ^= random.get_next_byte()
@@ -372,13 +374,13 @@ class JpegEncoder(object):
                     pass
 
             if _examined > 0:
-                print _examined, 'coefficients examined'
+                logger.info('%d coefficients examined' % _examined)
             if _changed > 0:
-                print _changed, 'coefficients changed (efficiency:,', _embedded / _changed, '.', _embedded * 10 / _changed % 10, 'bits per change'
-            print _thrown, 'coefficients thrown (zeroed)'
-            print _embedded, 'bits (', _embedded / 8, 'bytes) embedded'
+                logger.info('%d coefficients changed (efficiency: %d.%d bits per change' % (_changed, _embedded / _changed, _embedded * 10 / _changed % 10))
+            logger.info('%d coefficients thrown (zeroed)' % _thrown)
+            logger.info('%d bits (%d bytes) embedded' % (_embedded, _embedded / 8))
 
-        print 'starting hufman encoding'
+        logger.info('starting hufman encoding')
         shuffled_index = 0
 
         for r in range(min_block_height):

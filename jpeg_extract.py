@@ -2,6 +2,9 @@ from huffman_decode import HuffmanDecode
 from util import PythonF5Random as F5Random
 from util import BreakException
 from util import Permutation
+import logging
+
+logger = logging.getLogger('jpeg_decoder')
 
 class JpegExtract(object):
     de_zig_zag = [
@@ -51,29 +54,29 @@ class JpegExtract(object):
 
     def extract(self, data):
         hd = HuffmanDecode(data)
-        print 'huffman decoding starts'
+        logger.info('huffman decoding starts')
         coeff = hd.decode()
 
-        print 'permutation starts'
+        logger.info('permutation starts')
         permutation = Permutation(len(coeff), self.f5random)
-        print len(coeff), 'indices shuffled'
+        logger.info('%d indices shuffled' % len(coeff))
 
         self.extracted_byte = 0
         self.available_extracted_bits = 0
         self.n_bytes_extracted = 0
         self.extracted_bit = 0
 
-        print 'extraction starts'
+        logger.info('extraction starts')
 
         self.cal_embedded_length(permutation, coeff)
         k = (self.extracted_file_length >> 24) % 32
         n = (1 << k) - 1
         self.extracted_file_length &= 0x007fffff
-        print 'length of embedded file: %d bytes' % self.extracted_file_length
+        logger.info('length of embedded file: %d bytes' % self.extracted_file_length)
 
         if n > 1:
             vhash = 0
-            print '(1, %d, %d) code used' % (n, k)
+            logger.info('(1, %d, %d) code used' % (n, k))
 
             try:
                 while True:
@@ -107,7 +110,7 @@ class JpegExtract(object):
             except BreakException:
                 pass
         else:
-            print 'default code used'
+            logger.info('default code used')
             while self.pos < len(coeff):
                 self.pos += 1
                 shuffled_index = permutation.get_shuffled(self.pos)
@@ -129,4 +132,4 @@ class JpegExtract(object):
                         break
 
         if self.n_bytes_extracted != self.extracted_file_length:
-            print 'incomplete file: only %d of %d bytes extracted' % (self.n_bytes_extracted, self.extracted_file_length)
+            logger.info('incomplete file: only %d of %d bytes extracted' % (self.n_bytes_extracted, self.extracted_file_length))
