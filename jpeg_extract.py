@@ -16,7 +16,7 @@ class JpegExtract(object):
 
     def __init__(self, out, password):
         self.out = out
-        self.f5random = F5Random(password)
+        self.password = password
 
     def write_extracted_byte(self):
         self.extracted_byte ^= self.f5random.get_next_byte()
@@ -58,6 +58,7 @@ class JpegExtract(object):
         coeff = hd.decode()
 
         logger.info('permutation starts')
+        self.f5random = F5Random(self.password)
         permutation = Permutation(len(coeff), self.f5random)
         logger.info('%d indices shuffled' % len(coeff))
 
